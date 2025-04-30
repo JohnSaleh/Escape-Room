@@ -4,7 +4,7 @@
 #include<GL/stb_image.h>
 #include<GL/glut.h>
 
-GLuint textures[7];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
+GLuint textures[8];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
 
 
 unsigned int texture;
@@ -28,7 +28,7 @@ float matamb[] = { 1.0f,1.0f,1.0f,1.0f },
 matdiff[] = { 1.0f,1.0f,1.0f,1.0f },
 matspec[] = { 0.64f,1.0f,1.0f,1.0f },
 matshin[] = { 4 },
-lightamb[] = { 1,0,1,1 },
+lightamb[] = { 1,1,1,1 },
 lightdiff[] = { 0,.6,.6,1 },
 lightspec[] = { .2,.2,.2,1 },
 lightPos[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -68,6 +68,8 @@ void drawFan();
 void drawCube(float, float, float);
 void drawTableLeg(float, float);
 void drawTable2();
+
+void drawCard();
 
 void main(int argc, char** argv) {
 
@@ -142,6 +144,7 @@ void mydraw() {
 
 	drawTable();
 	drawTable2();
+	drawCard();
 	glutSwapBuffers();
 }
 
@@ -244,17 +247,18 @@ void specialKeyboard(int key, int x, int y) {
 }
 
 void init_textures() {
-	const char* filenames[7] = {
+	const char* filenames[8] = {
 		"", // dummy for index 0
 		"floor.jpg",
 		"roof.jpg",
 		"chair-wood.jpg",
 		"table_texture.jpg",
 		"fan_txt.PNG",
-		"wood.jpg"
+		"wood.jpg",
+		"card.jpg"
 	};
 
-	for (int i = 1; i <= 6; ++i) {
+	for (int i = 1; i <= 7; ++i) {
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(filenames[i], &width, &height, &nrChannels, 0);
 		if (data) {
@@ -913,4 +917,52 @@ void drawTable2() {
 	drawTableLeg(legOffsetX, legOffsetZ);   // Front-right
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
+}
+
+
+void drawCard() {
+	float w = 0.64f, h = 0.9f, t = 0.05f;
+
+	glEnable(GL_TEXTURE_2D);
+	use_texture(7);
+	glTranslatef(9.0f, 5.48f, 0.0f);
+	glRotatef(90, 1, 0, 0);
+	glRotatef(45, 0, 0, 1);
+	// Front face (textured)
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-w, -h, t);
+	glTexCoord2f(1.0, 0.0); glVertex3f(w, -h, t);
+	glTexCoord2f(1.0, 1.0); glVertex3f(w, h, t);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-w, h, t);
+	glEnd();
+
+	// Back face (textured or plain)
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-w, -h, -t);
+	glTexCoord2f(1.0, 0.0); glVertex3f(w, -h, -t);
+	glTexCoord2f(1.0, 1.0); glVertex3f(w, h, -t);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-w, h, -t);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glDisable(GL_LIGHTING);
+	// Sides
+	glBegin(GL_QUADS);
+	// Top
+	
+	glVertex3f(-w, h, t); glVertex3f(w, h, t);
+	glVertex3f(w, h, -t); glVertex3f(-w, h, -t);
+	// Bottom
+	glVertex3f(-w, -h, t); glVertex3f(-w, -h, -t);
+	glVertex3f(w, -h, -t); glVertex3f(w, -h, t);
+	// Right
+	glVertex3f(w, -h, t); glVertex3f(w, -h, -t);
+	glVertex3f(w, h, -t); glVertex3f(w, h, t);
+	// Left
+	glVertex3f(-w, -h, t); glVertex3f(-w, h, t);
+	glVertex3f(-w, h, -t); glVertex3f(-w, -h, -t);
+	glEnd();
+
+	
 }
