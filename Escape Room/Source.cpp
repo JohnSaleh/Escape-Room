@@ -1,16 +1,20 @@
 ﻿#define STB_IMAGE_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <gl/tiny_obj_loader.h>
 #include<iostream>
 #include<Windows.h>
 #include<GL/stb_image.h>
 #include<GL/glut.h>
 
-GLuint textures[8];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
+GLuint textures[15];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
+std::vector<float> modelVertices; // 3d model vertices
+std::vector<float> modelTexCoords;
 
 
 unsigned int texture;
 int width, height, nrChannels;
 unsigned char* data = NULL;
-bool fullScreenMode = true , lightOn = false;
+bool fullScreenMode = true, lightOn = false;
 float ratio, eyey = 10, eyez = 40, eyex = 0;
 float centerX, centerY, centerZ = 20;
 
@@ -36,6 +40,7 @@ lightPos[] = { 1.0, 1.0, 1.0, 1.0 };
 float TABLE_TOP_WIDTH = 8, TABLE_TOP_LENGTH = 10, TABLE_TOP_THICKNESS = 1;	// Start of Table Variables
 float TABLE_LEG_HEIGHT = 7, TABLE_LEG_WIDTH = 1;
 float tableX = 10, tableY, tableZ;											//End of Table Variables
+
 
 
 void init_textures();
@@ -70,18 +75,23 @@ void drawTableLeg(float, float);
 void drawTable2();
 
 void drawCard();
+void drawCoffin();
+void drawModel();
+void loadModel(const char*);
 
 void main(int argc, char** argv) {
 
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 
 	glutCreateWindow(" 3D shapes and animation");
 	glutFullScreen();
 
 	background();
 
+	loadModel("skeleton.obj");
 	init_textures();
+	
 	glutSetCursor(GLUT_CURSOR_NONE);
 	glutPassiveMotionFunc(mouseMovement);
 	glutDisplayFunc(mydraw);
@@ -134,7 +144,7 @@ void mydraw() {
 
 	glPushMatrix();
 	glDisable(GL_LIGHTING);
-	glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f); 
+	glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
 	drawFan();
 	glPopMatrix();
 	glEnable(GL_LIGHTING);
@@ -145,6 +155,9 @@ void mydraw() {
 	drawTable();
 	drawTable2();
 	drawCard();
+	
+	drawCoffin();
+
 	glutSwapBuffers();
 }
 
@@ -157,20 +170,21 @@ void reshape(int w, int h) {
 	gluPerspective(45, ratio, 1, 100);
 	glMatrixMode(GL_MODELVIEW);
 }
+
 // Light Toggle Timer
 void lightTimer(int v) {
-	toggleLight(v); 
+	toggleLight(v);
 	glutPostRedisplay();
-	glutTimerFunc(10000, lightTimer, 0); 
+	glutTimerFunc(10000, lightTimer, 0);
 }
 // fan movement timer
 void fanTimer(int v) {
-	fanRotationAngle += 20.0f; 
+	fanRotationAngle += 20.0f;
 	if (fanRotationAngle > 360.0f)
 		fanRotationAngle -= 360.0f;
 
 	glutPostRedisplay();
-	glutTimerFunc(100, fanTimer, 0); 
+	glutTimerFunc(100, fanTimer, 0);
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -247,7 +261,7 @@ void specialKeyboard(int key, int x, int y) {
 }
 
 void init_textures() {
-	const char* filenames[8] = {
+	const char* filenames[15] = {
 		"", // dummy for index 0
 		"floor.jpg",
 		"roof.jpg",
@@ -255,10 +269,12 @@ void init_textures() {
 		"table_texture.jpg",
 		"fan_txt.PNG",
 		"wood.jpg",
-		"card.jpg"
+		"card.jpg",
+		"darkwood.jpg",
+		"sk.jpg"
 	};
 
-	for (int i = 1; i <= 7; ++i) {
+	for (int i = 1; i < 10; ++i) {
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(filenames[i], &width, &height, &nrChannels, 0);
 		if (data) {
@@ -266,7 +282,7 @@ void init_textures() {
 			glBindTexture(GL_TEXTURE_2D, textures[i]);
 
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-			
+
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -629,8 +645,8 @@ void drawChair()
 void chair()
 {
 	glPushMatrix();
-	glTranslatef(12, -2, -16); 
-	glScalef(2.0f, 2.0f, 2.0f);    
+	glTranslatef(12, -2, -16);
+	glScalef(2.0f, 2.0f, 2.0f);
 	drawChair();
 	glPopMatrix();
 }
@@ -923,6 +939,7 @@ void drawTable2() {
 void drawCard() {
 	float w = 0.64f, h = 0.9f, t = 0.05f;
 
+	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
 	use_texture(7);
 	glTranslatef(9.0f, 5.48f, 0.0f);
@@ -950,7 +967,7 @@ void drawCard() {
 	// Sides
 	glBegin(GL_QUADS);
 	// Top
-	
+
 	glVertex3f(-w, h, t); glVertex3f(w, h, t);
 	glVertex3f(w, h, -t); glVertex3f(-w, h, -t);
 	// Bottom
@@ -964,5 +981,155 @@ void drawCard() {
 	glVertex3f(-w, h, -t); glVertex3f(-w, -h, -t);
 	glEnd();
 
-	
+	glPopMatrix();
+}
+
+void drawCoffin() {
+	glEnable(GL_TEXTURE_2D);
+
+	glPushMatrix();
+
+	float th = 0.06, sg = 0.02, sg2 = 0.01;
+	float vx[] = { 0, 2.05, 2.05, 0, -2.05, -2.05 };
+	float vz[] = { 1.02, 0.52, -0.52, -1.02, -0.52, 0.52 };
+
+	// Bottom (untextured)
+	glTranslatef(-11, -1.9, -11);
+	glScalef(4, 4, 4);
+	glRotatef(270, 0, 1, 0);
+	glColor3f(0.3, 0.15f, 0.05);
+	glBegin(GL_POLYGON);
+	for (int i = 0; i < 6; i++)
+		glVertex3f(vx[i], th, vz[i]);
+	glEnd();
+
+	glColor3f(0.3, 0.15f, 0.05);
+	glBegin(GL_POLYGON);
+	for (int i = 0; i < 6; i++)
+		glVertex3f(vx[i], 0, vz[i]);
+	glEnd();
+
+	for (int i = 0; i < 6; ++i) {
+		int next = (i + 1) % 6;
+
+		glColor3f(0.3, 0.15f, 0.05);
+		glBegin(GL_QUADS);
+		glVertex3f(vx[i], 0, vz[i]);
+		glVertex3f(vx[next], 0, vz[next]);
+		glVertex3f(vx[next], th, vz[next]);
+		glVertex3f(vx[i], th, vz[i]);
+		glEnd();
+	}
+
+	float vx2[] = { 0, 2, 2, 0, -2, -2 };
+	float vz2[] = { 1, 0.5, -0.5, -1, -0.5, 0.5 };
+
+	// Sides with texture
+	use_texture(8);
+	for (int i = 0; i < 6; ++i) {
+		int next = (i + 1) % 6;
+
+		glColor3f(1, 1, 1); // Texture color
+		glBegin(GL_QUADS);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(vx2[i], th, vz2[i]);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(vx2[next], th, vz2[next]);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(vx2[next], 0.75, vz2[next]);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(vx2[i], 0.75, vz2[i]);
+		glEnd();
+
+		// Optional black border lines
+		glDisable(GL_TEXTURE_2D);
+		glColor3f(0, 0, 0);
+		glLineWidth(5);
+		glBegin(GL_LINES);
+		glVertex3f(vx2[i], th, vz2[i]);
+		glVertex3f(vx2[i], 0.75, vz2[i]);
+		glVertex3f(vx2[i], 0.75, vz2[i]);
+		glVertex3f(vx2[next], 0.75, vz2[next]);
+		glEnd();
+		glEnable(GL_TEXTURE_2D);
+	}
+
+	glDisable(GL_TEXTURE_2D);
+	drawModel();
+}
+
+
+// Load the OBJ model
+// Load OBJ model and extract vertices and texture coordinates
+void loadModel(const char* filename) {
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename);
+	if (!ret) {
+		std::cerr << "Error loading model: " << err << std::endl;
+		return;
+	}
+
+	if (!warn.empty()) {
+		std::cerr << "Warning: " << warn << std::endl;
+	}
+
+	modelVertices.clear();
+	modelTexCoords.clear();
+
+	for (const auto& shape : shapes) {
+		for (const auto& index : shape.mesh.indices) {
+			// Vertex position
+			float vx = attrib.vertices[3 * index.vertex_index + 0];
+			float vy = attrib.vertices[3 * index.vertex_index + 1];
+			float vz = attrib.vertices[3 * index.vertex_index + 2];
+			modelVertices.push_back(vx);
+			modelVertices.push_back(vy);
+			modelVertices.push_back(vz);
+
+			// Texture coordinates (if available)
+			if (index.texcoord_index >= 0 && !attrib.texcoords.empty()) {
+				float tx = attrib.texcoords[2 * index.texcoord_index + 0];
+				float ty = attrib.texcoords[2 * index.texcoord_index + 1];
+				modelTexCoords.push_back(tx);
+				modelTexCoords.push_back(ty);
+			}
+			else {
+				// Default texture coordinate
+				modelTexCoords.push_back(0.0f);
+				modelTexCoords.push_back(0.0f);
+			}
+		}
+	}
+
+	std::cout << "Loaded " << modelVertices.size() / 3 << " vertices from the model." << std::endl;
+}
+
+// Draw the 3D textured model
+void drawModel() {
+	glPushMatrix();
+
+	glEnable(GL_TEXTURE_2D);
+	use_texture(9);
+
+	glColor3f(1.0f, 1.0f, 1.0f); // Ensure full texture color, no tint
+
+	glRotatef(90, 0, 0, 1);
+	glRotatef(90, 0, 1, 0);
+	glTranslatef(0, -1, 0.5);
+	glScalef(1.4, 1.4, 1.4);
+
+	glBegin(GL_TRIANGLES);
+	for (size_t i = 0, j = 0; i < modelVertices.size(); i += 3, j += 2) {
+		glTexCoord2f(modelTexCoords[j], modelTexCoords[j + 1]);
+		glVertex3f(modelVertices[i], modelVertices[i + 1], modelVertices[i + 2]);
+	}
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+	glPopMatrix();
 }
