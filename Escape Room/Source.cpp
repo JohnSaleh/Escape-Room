@@ -42,7 +42,6 @@ float TABLE_LEG_HEIGHT = 7, TABLE_LEG_WIDTH = 1;
 float tableX = 10, tableY, tableZ;											//End of Table Variables
 
 
-
 void init_textures();
 void use_texture(int);
 
@@ -92,6 +91,8 @@ void drawQuarterBlade(float);
 void drawBlades();
 void drawAxe(int, int, int);
 
+bool isClickOnBox(int, int);
+void mouseClick(int, int, int, int);
 
 void main(int argc, char** argv) {
 
@@ -1404,4 +1405,45 @@ void drawAxe(int x, int y, int z) {
 	use_texture(12);
 	drawBlades();
 	glPopMatrix();
+}
+
+bool isClickOnBox(int mouseX, int mouseY) {
+	GLdouble modelview[16], projection[16];
+	GLint viewport[4];
+	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+	glGetDoublev(GL_PROJECTION_MATRIX, projection);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+
+	GLdouble x1, y1, z1, x2, y2, z2;
+
+	gluUnProject(mouseX, viewport[3] - mouseY, 0.0, modelview, projection, viewport, &x1, &y1, &z1); // near
+	gluUnProject(mouseX, viewport[3] - mouseY, 1.0, modelview, projection, viewport, &x2, &y2, &z2); // far
+
+
+	// Ray: from (x1, y1, z1) to (x2, y2, z2)
+	// Perform intersection test with your objects
+
+	float Z0 = -19.5, xmin = 10, xmax = 14, ymin = 8, ymax = 12;
+	float dz = z2 - z1;
+	if (dz == 0.0f) return false; // Ray is parallel to the plane
+
+	float t = (Z0 - z1) / dz;
+
+	if (t < 0.0f || t > 1.0f) return false; // Intersection is outside ray segment
+
+	float x = x1 + t * (x2 - x1);
+	float y = y1 + t * (y2 - y1);
+	std::cout << x << ' ' << y << '\n';
+
+	return (x >= xmin && x <= xmax && y >= ymin && y <= ymax);
+}
+
+void mouseClick(int button, int state, int x, int y) {
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		if (isClickOnBox(x, y)) {
+			std::cout << "Box was clicked!\n";
+		}
+		else
+			std::cout << "Not yet!\n";
+	}
 }
