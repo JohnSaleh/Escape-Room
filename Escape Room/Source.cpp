@@ -88,6 +88,10 @@ void drawX(float, float, float);
 
 void drawSafeBox();
 
+void drawQuarterBlade(float);
+void drawBlades();
+void drawAxe(int, int, int);
+
 
 void main(int argc, char** argv) {
 
@@ -171,6 +175,7 @@ void mydraw() {
 	drawClock();
 
 	drawSafeBox();
+
 
 	glutSwapBuffers();
 }
@@ -287,10 +292,11 @@ void init_textures() {
 		"darkwood.jpg",		//8
 		"sk.jpg",			//9
 		"safeBox.jpg",		//10
-		"clock.jpg"			//11
+		"clock.jpg",		//11
+		"metal.jpg"			//12
 	};
 
-	for (int i = 1; i < 12; ++i) {
+	for (int i = 1; i < 13; ++i) {
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(filenames[i], &width, &height, &nrChannels, 0);
 		if (data) {
@@ -1346,5 +1352,56 @@ void drawSafeBox() {
 
 	glEnd();
 
+	glPopMatrix();
+}
+
+
+void drawArm() {
+	glColor3f(0.5f, 0.5f, 0.5f); // metallic gray
+	glPushMatrix();
+	glScalef(0.1f, 2.0f, 0.1f); // thin vertical box
+	glutSolidCube(1.0f);
+	glPopMatrix();
+}
+
+void drawQuarterBlade(float direction) {
+	// direction = +1 for right blade, -1 for left blade
+	glBegin(GL_TRIANGLE_FAN);
+	glTexCoord2f(0.5f, 0.5f); // center of the texture
+	glVertex3f(0.0f, 0.0f, 0.0f);
+
+	for (int i = -45; i <= 45; i += 10) {
+		float angle = i * PI / 180.0f;
+		float x = direction * cos(angle) * 0.7f;
+		float y = sin(angle) * 0.7f;
+
+		// Map (x, y) to texture coordinates assuming unit circle
+		float u = 0.5f + (x / 1.4f); // Normalize between 0–1
+		float v = 0.5f + (y / 1.4f);
+
+		glTexCoord2f(u, v);
+		glVertex3f(x, y, 0.0f);
+	}
+	glEnd();
+}
+
+void drawBlades() {
+	glPushMatrix();
+	glTranslatef(0.0f, -1.0f, 0.0f); // bottom of arm
+	drawQuarterBlade(+1); // right quarter-circle
+	drawQuarterBlade(-1); // left quarter-circle
+	glPopMatrix();
+}
+
+
+void drawAxe(int x, int y, int z) {
+	glPushMatrix();
+	glScalef(4, 4, 4);
+	glEnable(GL_TEXTURE_2D);
+	glTranslatef(x, y, z);
+	use_texture(4);
+	drawArm();
+	use_texture(12);
+	drawBlades();
 	glPopMatrix();
 }
