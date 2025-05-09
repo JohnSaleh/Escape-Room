@@ -286,11 +286,11 @@ void init_textures() {
 		"card.jpg",			//7
 		"darkwood.jpg",		//8
 		"sk.jpg",			//9
-		"safe.jpg",			//10
+		"safeBox.jpg",		//10
 		"clock.jpg"			//11
 	};
 
-	for (int i = 1; i < 11; ++i) {
+	for (int i = 1; i < 12; ++i) {
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(filenames[i], &width, &height, &nrChannels, 0);
 		if (data) {
@@ -1183,7 +1183,7 @@ void drawClock() {
 	glScalef(2, 2, 2);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_LIGHTING);
-	use_texture(10);
+	use_texture(11);
 	drawClockFace();
 	glDisable(GL_LIGHTING);
 
