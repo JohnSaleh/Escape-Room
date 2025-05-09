@@ -170,7 +170,7 @@ void mydraw() {
 
 	drawClock();
 
-	//drawSafeBox();
+	drawSafeBox();
 
 	glutSwapBuffers();
 }
@@ -1178,7 +1178,7 @@ void drawClockFace() {
 }
 
 void drawClock() {
-	
+	glPushMatrix();
 	glTranslatef(0, 15, -19.9);
 	glScalef(2, 2, 2);
 	glEnable(GL_TEXTURE_2D);
@@ -1225,6 +1225,8 @@ void drawClock() {
 	glRotatef(180.0f, 0, 0, 1);   // 6:00
 	drawTriangleHand(0.85f, 0.10f);      // Long, thin triangle
 	glPopMatrix();
+	glPopMatrix();
+
 }
 
 void drawI(float x, float y, float z) {
@@ -1300,7 +1302,10 @@ void drawSafeBox() {
 	use_texture(10);
 	glTranslatef(12.0f, 10.0f, -18.0f);
 
+
 	glScalef(4.0f, 4.0f, 4.0f);
+	glColor3f(1.0f, 1.0f, 1.0f);
+	glEnable(GL_LIGHTING);
 	glBegin(GL_QUADS);
 
 	// Front
