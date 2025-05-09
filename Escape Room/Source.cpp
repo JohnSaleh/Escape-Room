@@ -86,6 +86,8 @@ void drawI(float, float, float);
 void drawV(float, float, float);
 void drawX(float, float, float);
 
+void drawSafeBox();
+
 
 void main(int argc, char** argv) {
 
@@ -167,6 +169,8 @@ void mydraw() {
 	drawCoffin();
 
 	drawClock();
+
+	//drawSafeBox();
 
 	glutSwapBuffers();
 }
@@ -282,7 +286,8 @@ void init_textures() {
 		"card.jpg",			//7
 		"darkwood.jpg",		//8
 		"sk.jpg",			//9
-		"clock.jpg"			//10
+		"safe.jpg",			//10
+		"clock.jpg"			//11
 	};
 
 	for (int i = 1; i < 11; ++i) {
@@ -1288,3 +1293,53 @@ void drawX(float x, float y, float z) {
 }
 
 
+void drawSafeBox() {
+	float s = 0.5f;
+	glPushMatrix();
+	glEnable(GL_TEXTURE_2D);
+	use_texture(10);
+	glTranslatef(12.0f, 10.0f, -18.0f);
+
+	glScalef(4.0f, 4.0f, 4.0f);
+	glBegin(GL_QUADS);
+
+	// Front
+	glTexCoord2f(0, 0); glVertex3f(-s, -s, s);
+	glTexCoord2f(1, 0); glVertex3f(s, -s, s);
+	glTexCoord2f(1, 1); glVertex3f(s, s, s);
+	glTexCoord2f(0, 1); glVertex3f(-s, s, s);
+
+	// Back
+	glTexCoord2f(0, 0); glVertex3f(-s, -s, -s);
+	glTexCoord2f(1, 0); glVertex3f(s, -s, -s);
+	glTexCoord2f(1, 1); glVertex3f(s, s, -s);
+	glTexCoord2f(0, 1); glVertex3f(-s, s, -s);
+
+	// Left
+	glTexCoord2f(0, 0); glVertex3f(-s, -s, -s);
+	glTexCoord2f(1, 0); glVertex3f(-s, -s, s);
+	glTexCoord2f(1, 1); glVertex3f(-s, s, s);
+	glTexCoord2f(0, 1); glVertex3f(-s, s, -s);
+
+	// Right
+	glTexCoord2f(0, 0); glVertex3f(s, -s, -s);
+	glTexCoord2f(1, 0); glVertex3f(s, -s, s);
+	glTexCoord2f(1, 1); glVertex3f(s, s, s);
+	glTexCoord2f(0, 1); glVertex3f(s, s, -s);
+
+	// Top
+	glTexCoord2f(0, 0); glVertex3f(-s, s, -s);
+	glTexCoord2f(1, 0); glVertex3f(s, s, -s);
+	glTexCoord2f(1, 1); glVertex3f(s, s, s);
+	glTexCoord2f(0, 1); glVertex3f(-s, s, s);
+
+	// Bottom
+	glTexCoord2f(0, 0); glVertex3f(-s, -s, -s);
+	glTexCoord2f(1, 0); glVertex3f(s, -s, -s);
+	glTexCoord2f(1, 1); glVertex3f(s, -s, s);
+	glTexCoord2f(0, 1); glVertex3f(-s, -s, s);
+
+	glEnd();
+
+	glPopMatrix();
+}
