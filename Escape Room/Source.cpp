@@ -79,6 +79,14 @@ void drawCoffin();
 void drawModel();
 void loadModel(const char*);
 
+void drawTriangleHand(float, float);
+void drawClockFace();
+void drawClock();
+void drawI(float, float, float);
+void drawV(float, float, float);
+void drawX(float, float, float);
+
+
 void main(int argc, char** argv) {
 
 	glutInit(&argc, argv);
@@ -157,6 +165,8 @@ void mydraw() {
 	drawCard();
 	
 	drawCoffin();
+
+	drawClock();
 
 	glutSwapBuffers();
 }
@@ -263,18 +273,19 @@ void specialKeyboard(int key, int x, int y) {
 void init_textures() {
 	const char* filenames[15] = {
 		"", // dummy for index 0
-		"floor.jpg",
-		"roof.jpg",
-		"chair-wood.jpg",
-		"table_texture.jpg",
-		"fan_txt.PNG",
-		"wood.jpg",
-		"card.jpg",
-		"darkwood.jpg",
-		"sk.jpg"
+		"floor.jpg",		//1
+		"roof.jpg",			//2
+		"chair-wood.jpg",	//3
+		"table_texture.jpg",//4
+		"fan_txt.PNG",		//5
+		"wood.jpg",			//6
+		"card.jpg",			//7
+		"darkwood.jpg",		//8
+		"sk.jpg",			//9
+		"clock.jpg"			//10
 	};
 
-	for (int i = 1; i < 10; ++i) {
+	for (int i = 1; i < 11; ++i) {
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(filenames[i], &width, &height, &nrChannels, 0);
 		if (data) {
@@ -1113,6 +1124,7 @@ void drawModel() {
 	glPushMatrix();
 
 	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_LIGHTING);
 	use_texture(9);
 
 	glColor3f(1.0f, 1.0f, 1.0f); // Ensure full texture color, no tint
@@ -1133,3 +1145,146 @@ void drawModel() {
 	glPopMatrix();
 	glPopMatrix();
 }
+
+void drawTriangleHand(float length, float baseWidth) {
+	glBegin(GL_TRIANGLES);
+	glVertex3f(0.0f, length, 0.01f);                   // Tip pointing outward
+	glVertex3f(-baseWidth / 2.0f, 0.0f, 0.01f);        // Left base
+	glVertex3f(baseWidth / 2.0f, 0.0f, 0.01f);         // Right base
+	glEnd();
+}
+
+void drawClockFace() {
+	const int segments = 100;
+	float radius = 1.0f;
+
+	glColor3f(1, 1, 1);
+	
+	glBegin(GL_TRIANGLE_FAN);
+	glTexCoord2f(0.5f, 0.5f);
+	glVertex3f(0, 0, 0);
+	for (int i = 0; i <= segments; ++i) {
+		float angle = 2.0f * PI * i / segments;
+		glTexCoord2f(0.5f + 0.5f * cos(angle) * radius, 0.5f + 0.5f * sin(angle) * radius);
+		glVertex3f(cos(angle) * radius, sin(angle) * radius, 0);
+	}
+
+	glEnd();
+}
+
+void drawClock() {
+	
+	glTranslatef(0, 15, -19.9);
+	glScalef(2, 2, 2);
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_LIGHTING);
+	use_texture(10);
+	drawClockFace();
+	glDisable(GL_LIGHTING);
+
+	glPushMatrix();		// Number 12
+	glScalef(0.3, 0.3, 0.3);
+	drawX(-0.3, 2.5, 0);
+	drawI(0.2, 2.5, 0);
+	drawI(0.5, 2.5, 0);
+	glPopMatrix();
+
+	glPushMatrix();		// Number 3
+	glScalef(0.3, 0.3, 0.3);
+	drawI(2.6, 0, 0);
+	drawI(2.8, 0, 0);
+	drawI(3.0, 0, 0);
+	glPopMatrix();
+
+	glPushMatrix();		// Number 6
+	glScalef(0.3, 0.3, 0.3);
+	drawV(-0.2, -2.5, 0);
+	drawI(0.4, -2.5, 0);
+	glPopMatrix();
+
+	glPushMatrix();		// Number 9
+	glScalef(0.3, 0.3, 0.3);
+	drawI(-3.0, 0, 0);
+	drawX(-2.4, 0, 0);
+	glPopMatrix();
+
+
+	glPushMatrix();
+	glColor3f(0.0, 0.0, 0.0);           
+	glRotatef(-90.0f, 0, 0, 1);  // 3:00
+	drawTriangleHand(0.6f, 0.16f);      // Short, wide triangle
+	glPopMatrix();
+
+	glPushMatrix();
+	glColor3f(0.0, 0.0, 0.0);           
+	glRotatef(180.0f, 0, 0, 1);   // 6:00
+	drawTriangleHand(0.85f, 0.10f);      // Long, thin triangle
+	glPopMatrix();
+}
+
+void drawI(float x, float y, float z) {
+	glPushMatrix();
+	glTranslatef(x, y, z);  // Position the "I"
+
+	glColor3f(0.0f, 0.0f, 0.0f);
+
+	// Draw a thin, tall cube for "I"
+	glPushMatrix();
+	glScalef(0.1f, 1.0f, 0.1f);  // Scale cube into a rectangle
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+void drawV(float x, float y, float z) {
+	glPushMatrix();
+	glTranslatef(x, y, z);  // Position the "V"
+	glColor3f(0.0f, 0.0f, 0.0f);
+
+	// Left stroke: angled toward center
+	glPushMatrix();
+	glTranslatef(-0.2f, 0.0f, 0.0f);
+	glRotatef(20.0f, 0, 0, 1);  // Tilt in
+	glScalef(0.09f, 1.1f, 0.03f); // Thin, long
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	// Right stroke: angled toward center
+	glPushMatrix();
+	glTranslatef(0.2f, 0.0f, 0.0f);
+	glRotatef(-20.0f, 0, 0, 1); // Tilt in
+	glScalef(0.09f, 1.1f, 0.03f);
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+
+
+
+void drawX(float x, float y, float z) {
+	glPushMatrix();
+	glTranslatef(x, y, z);  // Position the "X"
+
+	glColor3f(0.0f, 0.0f, 0.0f);
+
+	// First stroke: bottom-left to top-right
+	glPushMatrix();
+	glRotatef(35.0f, 0, 0, 1);
+	glScalef(0.07f, 1.2f, 0.07f);     // Thinner width and depth
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	// Second stroke: top-left to bottom-right
+	glPushMatrix();
+	glRotatef(-35.0f, 0, 0, 1);
+	glScalef(0.07f, 1.2f, 0.07f);     // Thinner width and depth
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+
