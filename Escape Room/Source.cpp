@@ -6,9 +6,14 @@
 #include<GL/stb_image.h>
 #include<GL/glut.h>
 
-GLuint textures[15];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
-std::vector<float> modelVertices; // 3d model vertices
-std::vector<float> modelTexCoords;
+GLuint textures[16];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
+// Skeleton model data
+std::vector<float> skeletonVertices;
+std::vector<float> skeletonTexCoords;
+
+// Skull model data
+std::vector<float> skullVertices;
+std::vector<float> skullTexCoords;
 
 
 unsigned int texture;
@@ -40,6 +45,11 @@ lightPos[] = { 1.0, 1.0, 1.0, 1.0 };
 float TABLE_TOP_WIDTH = 8, TABLE_TOP_LENGTH = 10, TABLE_TOP_THICKNESS = 1;	// Start of Table Variables
 float TABLE_LEG_HEIGHT = 7, TABLE_LEG_WIDTH = 1;
 float tableX = 10, tableY, tableZ;											//End of Table Variables
+// light of lamp on table
+bool lampLightOn = false;   // initially off
+GLfloat lampLightPos[] = { 0.0f, 3.5f, -8.0f, 1.0f }; // near lamp shade
+GLfloat lampDiffuse[] = { 1.0f, 1.0f, 0.9f, 1.0f };   // warm light
+
 
 
 void init_textures();
@@ -72,13 +82,18 @@ void drawFan();
 void drawCube(float, float, float);
 void drawTableLeg(float, float);
 void drawTable2();
-
+void drawLamp();
 void drawCard();
 void drawCoffin();
-void drawModel();
-void loadModel(const char*);
-
+void drawModel(const std::vector<float>& vertices,
+	const std::vector<float>& texCoords,
+	float tx, float ty, float tz,
+	float sx, float sy, float sz,
+	float angle, float r,
+	int textureId);
+void loadModel(const char* filename, std::vector<float>& vertices, std::vector<float>& texCoords);
 void drawTriangleHand(float, float);
+void drawFrame(int, float, float, float);
 void drawClockFace();
 void drawClock();
 void drawI(float, float, float);
@@ -86,13 +101,13 @@ void drawV(float, float, float);
 void drawX(float, float, float);
 
 void drawSafeBox();
-
 void drawQuarterBlade(float);
 void drawBlades();
 void drawAxe(int, int, int);
 
 bool isClickOnBox(int, int);
 void mouseClick(int, int, int, int);
+
 
 void main(int argc, char** argv) {
 
@@ -104,9 +119,10 @@ void main(int argc, char** argv) {
 
 	background();
 
-	loadModel("skeleton.obj");
+	loadModel("skeleton.obj", skeletonVertices, skeletonTexCoords);
+	loadModel("Skull_OBJ.OBJ", skullVertices, skullTexCoords);
 	init_textures();
-	
+
 	glutSetCursor(GLUT_CURSOR_NONE);
 	glutPassiveMotionFunc(mouseMovement);
 	glutDisplayFunc(mydraw);
@@ -159,23 +175,35 @@ void mydraw() {
 
 	glPushMatrix();
 	glDisable(GL_LIGHTING);
-	glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
-	drawFan();
+
+	if (lampLightOn) {
+		glEnable(GL_LIGHT1);
+		glLightfv(GL_LIGHT1, GL_POSITION, lampLightPos);
+		glLightfv(GL_LIGHT1, GL_DIFFUSE, lampDiffuse);
+	}
+	else {
+		glDisable(GL_LIGHT1);
+	}
 	glPopMatrix();
 	glEnable(GL_LIGHTING);
 
+	glPushMatrix();
+	glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
+	drawFan();
+	glPopMatrix();
+
 	Room();
 	chair();
-
+	drawFrame(13, 14.5f, 12.0f, 12.0f);
+	drawFrame(14, -14.5f, 12.0f, 12.0f);
+	drawFrame(15, -14.5f, 12.0f, 4.0f);
+	drawLamp();
 	drawTable();
 	drawTable2();
-	drawCard();
-	
-	drawCoffin();
-
-	drawClock();
-
 	drawSafeBox();
+	drawCard();
+	drawClock();
+	drawCoffin();
 
 
 	glutSwapBuffers();
@@ -210,6 +238,10 @@ void fanTimer(int v) {
 void keyboard(unsigned char key, int x, int y) {
 	if (key == 27)
 		exit(0);
+	if (key == 'l' || key == 'L') {
+		lampLightOn = !lampLightOn;
+		glutPostRedisplay();
+	}
 }
 
 void specialKeyboard(int key, int x, int y) {
@@ -281,23 +313,26 @@ void specialKeyboard(int key, int x, int y) {
 }
 
 void init_textures() {
-	const char* filenames[15] = {
+	const char* filenames[16] = {
 		"", // dummy for index 0
-		"floor.jpg",		//1
-		"roof.jpg",			//2
-		"chair-wood.jpg",	//3
+		"floor.jpg",//1
+		"roof.jpg",//2
+		"chair-wood.jpg",//3
 		"table_texture.jpg",//4
-		"fan_txt.PNG",		//5
-		"wood.jpg",			//6
-		"card.jpg",			//7
-		"darkwood.jpg",		//8
-		"sk.jpg",			//9
+		"fan_txt.PNG",//5
+		"wood.jpg",//6
+		"card.jpg",//7
+		"darkwood.jpg",//8
+		"sk.jpg",//9
 		"safeBox.jpg",		//10
 		"clock.jpg",		//11
-		"metal.jpg"			//12
+		"metal.jpg"	,		//12
+		"frame1.jpg",      //13
+		"frame2.jpg",//14
+		"frame3.jpg"//15
 	};
 
-	for (int i = 1; i < 13; ++i) {
+	for (int i = 1; i < 16; ++i) {
 		int width, height, nrChannels;
 		unsigned char* data = stbi_load(filenames[i], &width, &height, &nrChannels, 0);
 		if (data) {
@@ -726,6 +761,7 @@ void drawTable() {
 	// Disable texture if legs don't need textures
 	glDisable(GL_TEXTURE_2D);
 
+
 	// Draw Table Legs
 	float legHeight = 2.0f;
 	float legSize = 0.3f;
@@ -789,6 +825,8 @@ void drawTable() {
 
 	// Disable texture after drawing legs
 	glDisable(GL_TEXTURE_2D);
+	drawModel(skullVertices, skullTexCoords, 2.0f, 1.7f, -8.0f, 0.09f, 0.09f, 0.09f, 0, 0, 9);       // Skull
+
 }
 
 void drawFan() {
@@ -956,6 +994,16 @@ void drawTable2() {
 	drawTableLeg(legOffsetX, legOffsetZ);   // Front-right
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
+	drawModel(skullVertices, skullTexCoords,
+		10.0f, TABLE_LEG_HEIGHT - 1.6f + TABLE_TOP_THICKNESS / 1.0f, -0.9f, // tx, ty, tz
+		0.09f, 0.09f, 0.09f,                                            // scale to fit
+		45.0f, 1.0f,                                        // rotate if needed
+		9);
+	drawModel(skullVertices, skullTexCoords,
+		12.0f, TABLE_LEG_HEIGHT - 1.6f + TABLE_TOP_THICKNESS / 1.0f, -0.9f, // tx, ty, tz
+		0.07f, 0.07f, 0.07f,                                            // scale to fit
+		-60.0f, 1.0f,                                        // rotate if needed
+		9);
 }
 
 
@@ -1006,7 +1054,76 @@ void drawCard() {
 
 	glPopMatrix();
 }
+void drawLamp() {
+	const float shiftX = -2.0f;  // Shift lamp 2 units to the left
 
+	// === Lamp Base ===
+	glPushMatrix();
+	glTranslatef(shiftX, 1.0f, -8.0f);
+	glScalef(1.0f, 0.2f, 1.0f);
+	glColor3f(0.5f, 0.3f, 0.2f);
+	glDisable(GL_TEXTURE_2D);
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	// === Lamp Stand ===
+	glPushMatrix();
+	glTranslatef(shiftX, 1.9f, -8.0f);
+	glScalef(0.5f, 1.8f, 0.1f);
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glDisable(GL_TEXTURE_2D);
+	glutSolidCube(1.0f);
+	glPopMatrix();
+
+	// === Lamp Shade (Textured) ===
+	glPushMatrix();
+	glTranslatef(shiftX, 3.2f, -8.0f);
+	glScalef(1.5f, 1.2f, 1.5f);
+	glEnable(GL_TEXTURE_2D);
+	use_texture(3); // Use your texture ID
+	glColor3f(1.0f, 1.0f, 1.0f);
+
+	glBegin(GL_QUADS);
+	// Bottom face
+	glTexCoord2f(0, 0); glVertex3f(-1.0f, -1.0f, 1.0f);
+	glTexCoord2f(1, 0); glVertex3f(1.0f, -1.0f, 1.0f);
+	glTexCoord2f(1, 1); glVertex3f(1.0f, -1.0f, -1.0f);
+	glTexCoord2f(0, 1); glVertex3f(-1.0f, -1.0f, -1.0f);
+
+	// Side 1
+	glTexCoord2f(0, 0); glVertex3f(-1.0f, -1.0f, 1.0f);
+	glTexCoord2f(1, 0); glVertex3f(1.0f, -1.0f, 1.0f);
+	glTexCoord2f(1, 1); glVertex3f(0.5f, 1.0f, 0.5f);
+	glTexCoord2f(0, 1); glVertex3f(-0.5f, 1.0f, 0.5f);
+
+	// Side 2
+	glTexCoord2f(0, 0); glVertex3f(1.0f, -1.0f, 1.0f);
+	glTexCoord2f(1, 0); glVertex3f(1.0f, -1.0f, -1.0f);
+	glTexCoord2f(1, 1); glVertex3f(0.5f, 1.0f, -0.5f);
+	glTexCoord2f(0, 1); glVertex3f(0.5f, 1.0f, 0.5f);
+
+	// Side 3
+	glTexCoord2f(0, 0); glVertex3f(1.0f, -1.0f, -1.0f);
+	glTexCoord2f(1, 0); glVertex3f(-1.0f, -1.0f, -1.0f);
+	glTexCoord2f(1, 1); glVertex3f(-0.5f, 1.0f, -0.5f);
+	glTexCoord2f(0, 1); glVertex3f(0.5f, 1.0f, -0.5f);
+
+	// Side 4
+	glTexCoord2f(0, 0); glVertex3f(-1.0f, -1.0f, -1.0f);
+	glTexCoord2f(1, 0); glVertex3f(-1.0f, -1.0f, 1.0f);
+	glTexCoord2f(1, 1); glVertex3f(-0.5f, 1.0f, 0.5f);
+	glTexCoord2f(0, 1); glVertex3f(-0.5f, 1.0f, -0.5f);
+
+	// Top face
+	glTexCoord2f(0, 0); glVertex3f(-0.5f, 1.0f, 0.5f);
+	glTexCoord2f(1, 0); glVertex3f(0.5f, 1.0f, 0.5f);
+	glTexCoord2f(1, 1); glVertex3f(0.5f, 1.0f, -0.5f);
+	glTexCoord2f(0, 1); glVertex3f(-0.5f, 1.0f, -0.5f);
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
+}
 void drawCoffin() {
 	glEnable(GL_TEXTURE_2D);
 
@@ -1078,13 +1195,18 @@ void drawCoffin() {
 	}
 
 	glDisable(GL_TEXTURE_2D);
-	drawModel();
+	drawModel(skeletonVertices, skeletonTexCoords,
+		1.5f, 0.4f, 0.0f,       // tx, ty, tz (centered)
+		1.4f, 1.4f, 1.4f,       // scale down to fit
+		90.0f, 1.0f, // rotate model to lie flat
+		9);
+	glPopMatrix();
 }
 
 
 // Load the OBJ model
 // Load OBJ model and extract vertices and texture coordinates
-void loadModel(const char* filename) {
+void loadModel(const char* filename, std::vector<float>& vertices, std::vector<float>& texCoords) {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
@@ -1100,63 +1222,63 @@ void loadModel(const char* filename) {
 		std::cerr << "Warning: " << warn << std::endl;
 	}
 
-	modelVertices.clear();
-	modelTexCoords.clear();
+	vertices.clear();
+	texCoords.clear();
 
 	for (const auto& shape : shapes) {
 		for (const auto& index : shape.mesh.indices) {
-			// Vertex position
-			float vx = attrib.vertices[3 * index.vertex_index + 0];
-			float vy = attrib.vertices[3 * index.vertex_index + 1];
-			float vz = attrib.vertices[3 * index.vertex_index + 2];
-			modelVertices.push_back(vx);
-			modelVertices.push_back(vy);
-			modelVertices.push_back(vz);
+			// Vertex
+			vertices.push_back(attrib.vertices[3 * index.vertex_index + 0]);
+			vertices.push_back(attrib.vertices[3 * index.vertex_index + 1]);
+			vertices.push_back(attrib.vertices[3 * index.vertex_index + 2]);
 
-			// Texture coordinates (if available)
+			// Texture
 			if (index.texcoord_index >= 0 && !attrib.texcoords.empty()) {
-				float tx = attrib.texcoords[2 * index.texcoord_index + 0];
-				float ty = attrib.texcoords[2 * index.texcoord_index + 1];
-				modelTexCoords.push_back(tx);
-				modelTexCoords.push_back(ty);
+				texCoords.push_back(attrib.texcoords[2 * index.texcoord_index + 0]);
+				texCoords.push_back(attrib.texcoords[2 * index.texcoord_index + 1]);
 			}
 			else {
-				// Default texture coordinate
-				modelTexCoords.push_back(0.0f);
-				modelTexCoords.push_back(0.0f);
+				texCoords.push_back(0.0f);
+				texCoords.push_back(0.0f);
 			}
 		}
 	}
 
-	std::cout << "Loaded " << modelVertices.size() / 3 << " vertices from the model." << std::endl;
+	std::cout << "Loaded " << vertices.size() / 3 << " vertices from " << filename << std::endl;
 }
 
 // Draw the 3D textured model
-void drawModel() {
+
+
+// Draw the 3D textured model with passed model data, positioned to the right of the table
+void drawModel(const std::vector<float>& vertices,
+	const std::vector<float>& texCoords,
+	float tx, float ty, float tz,
+	float sx, float sy, float sz,
+	float angle, float r,
+	int textureId) {
 	glPushMatrix();
 
 	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_LIGHTING);
-	use_texture(9);
+	use_texture(textureId);
+	glColor3f(1.0f, 1.0f, 1.0f);
 
-	glColor3f(1.0f, 1.0f, 1.0f); // Ensure full texture color, no tint
-
-	glRotatef(90, 0, 0, 1);
-	glRotatef(90, 0, 1, 0);
-	glTranslatef(0, -1, 0.5);
-	glScalef(1.4, 1.4, 1.4);
+	glTranslatef(tx, ty, tz);
+	glRotatef(angle, 0, 0, r);
+	glRotatef(angle, 0, r, 0);
+	glScalef(sx, sy, sz);
 
 	glBegin(GL_TRIANGLES);
-	for (size_t i = 0, j = 0; i < modelVertices.size(); i += 3, j += 2) {
-		glTexCoord2f(modelTexCoords[j], modelTexCoords[j + 1]);
-		glVertex3f(modelVertices[i], modelVertices[i + 1], modelVertices[i + 2]);
+	for (size_t i = 0, j = 0; i < vertices.size(); i += 3, j += 2) {
+		glTexCoord2f(texCoords[j], texCoords[j + 1]);
+		glVertex3f(vertices[i], vertices[i + 1], vertices[i + 2]);
 	}
 	glEnd();
 
 	glDisable(GL_TEXTURE_2D);
 	glPopMatrix();
-	glPopMatrix();
 }
+
 
 void drawTriangleHand(float length, float baseWidth) {
 	glBegin(GL_TRIANGLES);
@@ -1165,13 +1287,12 @@ void drawTriangleHand(float length, float baseWidth) {
 	glVertex3f(baseWidth / 2.0f, 0.0f, 0.01f);         // Right base
 	glEnd();
 }
-
 void drawClockFace() {
 	const int segments = 100;
 	float radius = 1.0f;
 
 	glColor3f(1, 1, 1);
-	
+
 	glBegin(GL_TRIANGLE_FAN);
 	glTexCoord2f(0.5f, 0.5f);
 	glVertex3f(0, 0, 0);
@@ -1183,9 +1304,9 @@ void drawClockFace() {
 
 	glEnd();
 }
-
 void drawClock() {
 	glPushMatrix();
+
 	glTranslatef(0, 15, -19.9);
 	glScalef(2, 2, 2);
 	glEnable(GL_TEXTURE_2D);
@@ -1222,17 +1343,19 @@ void drawClock() {
 
 
 	glPushMatrix();
-	glColor3f(0.0, 0.0, 0.0);           
+	glColor3f(0.0, 0.0, 0.0);
 	glRotatef(-90.0f, 0, 0, 1);  // 3:00
 	drawTriangleHand(0.6f, 0.16f);      // Short, wide triangle
 	glPopMatrix();
 
 	glPushMatrix();
-	glColor3f(0.0, 0.0, 0.0);           
+	glColor3f(0.0, 0.0, 0.0);
 	glRotatef(180.0f, 0, 0, 1);   // 6:00
 	drawTriangleHand(0.85f, 0.10f);      // Long, thin triangle
 	glPopMatrix();
+
 	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
 
 }
 
@@ -1354,6 +1477,7 @@ void drawSafeBox() {
 	glEnd();
 
 	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
 }
 
 
@@ -1447,3 +1571,26 @@ void mouseClick(int button, int state, int x, int y) {
 			std::cout << "Not yet!\n";
 	}
 }
+void drawFrame(int textureID, float x, float y, float z) {
+	glEnable(GL_TEXTURE_2D);
+	use_texture(textureID);
+
+	glPushMatrix();
+
+	glTranslatef(x, y, z);
+	glRotatef(90, 0, 1, 0);
+
+	float width = 5.0f;
+	float height = 4.0f;
+
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 1); glVertex3f(-width / 2, -height / 2, 0);
+	glTexCoord2f(1, 1); glVertex3f(width / 2, -height / 2, 0);
+	glTexCoord2f(1, 0); glVertex3f(width / 2, height / 2, 0);
+	glTexCoord2f(0, 0); glVertex3f(-width / 2, height / 2, 0);
+	glEnd();
+
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+}
+
