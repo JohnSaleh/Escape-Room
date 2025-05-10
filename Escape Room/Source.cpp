@@ -108,6 +108,10 @@ void drawAxe(int, int, int);
 bool isClickOnBox(int, int);
 void mouseClick(int, int, int, int);
 
+void finalCorridor_pt1();
+void finalCorridor_pt2();
+void exit();
+void finalCorridor();
 
 void main(int argc, char** argv) {
 
@@ -205,6 +209,8 @@ void mydraw() {
 	drawClock();
 	drawCoffin();
 
+	finalCorridor_pt1();
+	finalCorridor_pt2();
 
 	glutSwapBuffers();
 }
@@ -1594,3 +1600,59 @@ void drawFrame(int textureID, float x, float y, float z) {
 	glDisable(GL_TEXTURE_2D);
 }
 
+
+void finalCorridor_pt1() {
+	glPushMatrix();
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
+	use_texture(2);
+
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(8, -2, 20);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(8, -2, 40);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(8, 20, 40);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(8, 20, 20);
+	glEnd();
+
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(-8, -2, 20);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(-8, -2, 40);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(-8, 20, 40);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(-8, 20, 20);
+	glEnd();
+
+	use_texture(1);
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(8, -2, 40);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(-8, -2, 40);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(-8, -2, 20);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(8, -2, 20);
+		glEnd();
+
+	glPopMatrix();
+}
+void finalCorridor_pt2() {
+	
+}
+
+void exit() {
+
+}
+
+void finalCorridor() {
+	finalCorridor_pt1();
+	finalCorridor_pt2();
+	exit();
+}
