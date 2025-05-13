@@ -59,6 +59,9 @@ GLfloat lampDiffuse[] = { 1.0f, 1.0f, 0.9f, 1.0f };   // warm light
 float axe_angle[3] = { 0,-15,30 };
 int axe_side[3] = { 1,-1,1 };
 
+bool game_over = false;
+bool win = false;
+
 void init_textures();
 void use_texture(int);
 
@@ -125,6 +128,10 @@ void finalCorridor_pt2();
 void exitCorridor();
 void finalCorridor();
 bool isPointInBox(float, float, float, BoundingBox);
+
+void gameOverScreen();
+void winScreen();
+
 void main(int argc, char** argv) {
 
 	glutInit(&argc, argv);
@@ -183,51 +190,61 @@ void toggleLight(int value) {
 }
 
 void mydraw() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-
-	gluLookAt(eyex, eyey, eyez,
-		centerX, centerY, centerZ,
-		0, 1, 0);
-
-	glPushMatrix();
-	glDisable(GL_LIGHTING);
-
-	if (lampLightOn) {
-		glEnable(GL_LIGHT1);
-		glLightfv(GL_LIGHT1, GL_POSITION, lampLightPos);
-		glLightfv(GL_LIGHT1, GL_DIFFUSE, lampDiffuse);
+	if (game_over) {
+		gameOverScreen();
 	}
-	else {
-		glDisable(GL_LIGHT1);
+	else if (eyez > 105)
+	{
+		winScreen();
 	}
-	glPopMatrix();
-	glEnable(GL_LIGHTING);
+	else
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glLoadIdentity();
 
-	glPushMatrix();
-	glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
-	drawFan();
-	glPopMatrix();
+		gluLookAt(eyex, eyey, eyez,
+			centerX, centerY, centerZ,
+			0, 1, 0);
 
-	Room();
-	chair();
-	drawFrame(13, 14.5f, 12.0f, 12.0f);
-	drawFrame(14, -14.5f, 12.0f, 12.0f);
-	drawFrame(15, -14.5f, 12.0f, 4.0f);
-	drawLamp();
-	drawTable();
-	drawTable2();
-	drawSafeBox();
-	drawCard();
-	drawClock();
-	drawCoffin();
+		glPushMatrix();
+		glDisable(GL_LIGHTING);
+
+		if (lampLightOn) {
+			glEnable(GL_LIGHT1);
+			glLightfv(GL_LIGHT1, GL_POSITION, lampLightPos);
+			glLightfv(GL_LIGHT1, GL_DIFFUSE, lampDiffuse);
+		}
+		else {
+			glDisable(GL_LIGHT1);
+		}
+		glPopMatrix();
+		glEnable(GL_LIGHTING);
+
+		glPushMatrix();
+		glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f);
+		drawFan();
+		glPopMatrix();
+
+		Room();
+		chair();
+		drawFrame(13, 14.5f, 12.0f, 12.0f);
+		drawFrame(14, -14.5f, 12.0f, 12.0f);
+		drawFrame(15, -14.5f, 12.0f, 4.0f);
+		drawLamp();
+		drawTable();
+		drawTable2();
+		drawSafeBox();
+		drawCard();
+		drawClock();
+		drawCoffin();
 
 
-	finalCorridor_pt1();
-	finalCorridor_pt2();
-	exitCorridor();
+		finalCorridor_pt1();
+		finalCorridor_pt2();
+		exitCorridor();
 
-	glutSwapBuffers();
+		glutSwapBuffers();
+	}
 }
 
 void reshape(int w, int h) {
@@ -335,22 +352,22 @@ void specialKeyboard(int key, int x, int y) {
 
 void init_textures() {
 	const char* filenames[16] = {
-		"", // dummy for index 0
-		"floor.jpg",//1
-		"roof.jpg",//2
-		"chair-wood.jpg",//3
+		"",					// dummy for index 0
+		"floor.jpg",		//1
+		"roof.jpg",			//2
+		"chair-wood.jpg",	//3
 		"table_texture.jpg",//4
-		"fan_txt.PNG",//5
-		"wood.jpg",//6
-		"card.jpg",//7
-		"darkwood.jpg",//8
-		"sk.jpg",//9
+		"fan_txt.PNG",		//5
+		"wood.jpg",			//6
+		"card.jpg",			//7
+		"darkwood.jpg",		//8
+		"sk.jpg",			//9
 		"safeBox.jpg",		//10
 		"clock.jpg",		//11
 		"metal.jpg"	,		//12
-		"frame1.jpg",      //13
-		"frame2.jpg",//14
-		"frame3.jpg"//15
+		"frame1.jpg",	 //13
+		"frame2.jpg",		//14
+		"frame3.jpg"		//15
 	};
 
 	for (int i = 1; i < 16; ++i) {
@@ -1827,7 +1844,7 @@ void drawAxe(float trans_x, float trans_y, float trans_z, float scale_x, float s
 		scale_x, scale_y, scale_z,
 		axe_number);
 	if (isPointInBox(eyex, eyey, eyez, blade_box)) {
-		std:: cout << "Game Over!\n" << eyex <<std::endl;
+		game_over = 1;
 	}
 
 	// Optional: Visualize the bounding box (for debugging)
@@ -1912,4 +1929,94 @@ BoundingBox calculateAxeBladeBoundingBox(float trans_x, float trans_y, float tra
 	box.max_z = world_blade_center_z + blade_depth / 2;
 
 	return box;
+}
+
+void gameOverScreen() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+
+	// Switch to 2D orthographic projection
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	gluOrtho2D(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT));
+	glMatrixMode(GL_MODELVIEW);
+
+	// Disable lighting for text rendering
+	glDisable(GL_LIGHTING);
+	glDisable(GL_TEXTURE_2D);
+
+	// Set text color to red
+	glColor3f(1.0f, 0.0f, 0.0f);
+
+	// Position the text in the center of the screen
+	int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+	int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+
+	// Render "GAME OVER!" text
+	glRasterPos2i(windowWidth / 2 - 100, windowHeight / 2);
+	const char* text = "GAME OVER!";
+	for (const char* c = text; *c != '\0'; c++) {
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
+	}
+
+	// Render "Press ESC to exit" text below
+	glColor3f(1.0f, 1.0f, 1.0f); // White color
+	glRasterPos2i(windowWidth / 2 - 80, windowHeight / 2 - 30);
+	text = "Press ESC to exit";
+	for (const char* c = text; *c != '\0'; c++) {
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+	}
+
+	// Restore the projection matrix
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+
+	glutSwapBuffers();
+}
+
+void winScreen() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+
+	// Switch to 2D orthographic projection
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	gluOrtho2D(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT));
+	glMatrixMode(GL_MODELVIEW);
+
+	// Disable lighting for text rendering
+	glDisable(GL_LIGHTING);
+	glDisable(GL_TEXTURE_2D);
+
+	// Set text color to red
+	glColor3f(0.0f, 1.0f, 0.0f);
+
+	// Position the text in the center of the screen
+	int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+	int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+
+	// Render "YOU WON!" text
+	glRasterPos2i(windowWidth / 2 - 100, windowHeight / 2);
+	const char* text = "YOU WON!";
+	for (const char* c = text; *c != '\0'; c++) {
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
+	}
+
+	// Render "Press ESC to exit" text below
+	glColor3f(1.0f, 1.0f, 1.0f); // White color
+	glRasterPos2i(windowWidth / 2 - 80, windowHeight / 2 - 30);
+	text = "Press ESC to exit";
+	for (const char* c = text; *c != '\0'; c++) {
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+	}
+
+	// Restore the projection matrix
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+
+	glutSwapBuffers();
 }
