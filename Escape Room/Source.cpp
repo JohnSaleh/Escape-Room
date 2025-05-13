@@ -6,6 +6,11 @@
 #include<GL/stb_image.h>
 #include<GL/glut.h>
 
+typedef struct {
+	float min_x, min_y, min_z;
+	float max_x, max_y, max_z;
+} BoundingBox;
+
 GLuint textures[16];  // VERY IMPORTANT: CHANGE NUMBER BASED ON NUMBER OF TEXTURES
 // Skeleton model data
 std::vector<float> skeletonVertices;
@@ -107,6 +112,10 @@ void drawQuarterBlade(float);
 void drawBlades();
 void drawAxe(float trans_x = 0, float trans_y = 0, float trans_z = 0, float scale_x = 4, float scale_y = 4, float scale_z = 4, int axe_number = 0);
 void axeTimer(int);
+bool isPointInBox(float, float, float, BoundingBox);
+BoundingBox calculateAxeBladeBoundingBox(float trans_x, float trans_y, float trans_z,
+	float scale_x, float scale_y, float scale_z,
+	int axe_number);
 
 bool isClickOnBox(int, int);
 void mouseClick(int, int, int, int);
@@ -115,7 +124,7 @@ void finalCorridor_pt1();
 void finalCorridor_pt2();
 void exitCorridor();
 void finalCorridor();
-
+bool isPointInBox(float, float, float, BoundingBox);
 void main(int argc, char** argv) {
 
 	glutInit(&argc, argv);
@@ -1813,6 +1822,28 @@ void drawAxe(float trans_x, float trans_y, float trans_z, float scale_x, float s
 	drawBlades();
 	
 	glPopMatrix();
+
+	BoundingBox blade_box = calculateAxeBladeBoundingBox(trans_x, trans_y, trans_z,
+		scale_x, scale_y, scale_z,
+		axe_number);
+	if (isPointInBox(eyex, eyey, eyez, blade_box)) {
+		std:: cout << "Game Over!\n" << eyex <<std::endl;
+	}
+
+	// Optional: Visualize the bounding box (for debugging)
+   //glPushMatrix();
+   //glDisable(GL_TEXTURE_2D);
+   //glDisable(GL_LIGHTING);
+   //glColor3f(1.0f, 0.0f, 0.0f); // Red for collision box
+   //glTranslatef((blade_box.min_x + blade_box.max_x)/2,
+			//   (blade_box.min_y + blade_box.max_y)/2,
+			//   (blade_box.min_z + blade_box.max_z)/2);
+   //glScalef(blade_box.max_x - blade_box.min_x,
+		 //  blade_box.max_y - blade_box.min_y,
+		 //  blade_box.max_z - blade_box.min_z);
+   //glutWireCube(1.0f);
+   //glPopMatrix();
+   
 }
 
 
@@ -1822,7 +1853,63 @@ void axeTimer(int v) {
 		if (axe_angle[i] > 60 || axe_angle[i] < -60)
 			axe_side[i] *= -1;
 	}
-
 	glutPostRedisplay();
 	glutTimerFunc(30, axeTimer, 0);
+}
+
+bool isPointInBox(float x, float y, float z, BoundingBox box) {
+	return (x >= box.min_x && x <= box.max_x &&
+		y >= box.min_y && y <= box.max_y &&
+		z >= box.min_z && z <= box.max_z);
+}
+
+BoundingBox calculateAxeBladeBoundingBox(float trans_x, float trans_y, float trans_z,
+	float scale_x, float scale_y, float scale_z,
+	int axe_number) {
+	BoundingBox box;
+
+	// Calculate the pivot point (center of rotation)
+	float pivot_x = trans_x;
+	float pivot_y = trans_y + scale_y; // Top of the arm
+	float pivot_z = trans_z;
+
+	// Get current angle of this axe in radians
+	float angle = axe_angle[axe_number] * PI / 180.0f;
+
+	// The blade is at the bottom of the arm, which is at y=-1.0f in local space
+	float local_blade_center_x = 0.0f;
+	float local_blade_center_y = -1.0f;
+	float local_blade_center_z = 0.0f;
+
+	// Scale the local coordinates
+	local_blade_center_y *= scale_y;
+
+	// Apply rotation around the pivot point (Z-axis rotation)
+	// First translate to have origin at pivot
+	float centered_x = local_blade_center_x;
+	float centered_y = local_blade_center_y - scale_y; // Adjust for the pivot at the top of arm
+
+	// Then rotate
+	float rotated_x = centered_x * cos(angle) - centered_y * sin(angle);
+	float rotated_y = centered_x * sin(angle) + centered_y * cos(angle);
+
+	// Then translate back to world coordinates
+	float world_blade_center_x = rotated_x + pivot_x;
+	float world_blade_center_y = rotated_y + pivot_y;
+	float world_blade_center_z = pivot_z;
+
+	// Blade dimensions (scaled)
+	float blade_width = 1.6f * scale_x;  // Based on the 0.7f radius in drawQuarterBlade
+	float blade_height = 1.0f * scale_y; // Approximate height
+	float blade_depth = 0.5f * scale_z;  // Approximate depth
+
+	// Create the bounding box that follows the axe blade
+	box.min_x = world_blade_center_x - blade_width / 2;
+	box.max_x = world_blade_center_x + blade_width / 2;
+	box.min_y = world_blade_center_y - blade_height / 2;
+	box.max_y = world_blade_center_y + blade_height / 2;
+	box.min_z = world_blade_center_z - blade_depth / 2;
+	box.max_z = world_blade_center_z + blade_depth / 2;
+
+	return box;
 }
