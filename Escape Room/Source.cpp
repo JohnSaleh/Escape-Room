@@ -51,6 +51,8 @@ GLfloat lampLightPos[] = { 0.0f, 3.5f, -8.0f, 1.0f }; // near lamp shade
 GLfloat lampDiffuse[] = { 1.0f, 1.0f, 0.9f, 1.0f };   // warm light
 
 
+float axe_angle[3] = { 0,-15,30 };
+int axe_side[3] = { 1,-1,1 };
 
 void init_textures();
 void use_texture(int);
@@ -103,14 +105,15 @@ void drawX(float, float, float);
 void drawSafeBox();
 void drawQuarterBlade(float);
 void drawBlades();
-void drawAxe(int, int, int);
+void drawAxe(float trans_x = 0, float trans_y = 0, float trans_z = 0, float scale_x = 4, float scale_y = 4, float scale_z = 4, int axe_number = 0);
+void axeTimer(int);
 
 bool isClickOnBox(int, int);
 void mouseClick(int, int, int, int);
 
 void finalCorridor_pt1();
 void finalCorridor_pt2();
-void exit();
+void exitCorridor();
 void finalCorridor();
 
 void main(int argc, char** argv) {
@@ -133,6 +136,7 @@ void main(int argc, char** argv) {
 	glutReshapeFunc(reshape);
 	glutTimerFunc(0, fanTimer, 0); // fan
 	glutTimerFunc(0, lightTimer, 0); // light
+	glutTimerFunc(0, axeTimer, 0);
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(specialKeyboard);
 
@@ -209,8 +213,10 @@ void mydraw() {
 	drawClock();
 	drawCoffin();
 
+
 	finalCorridor_pt1();
 	finalCorridor_pt2();
+	exitCorridor();
 
 	glutSwapBuffers();
 }
@@ -1487,55 +1493,8 @@ void drawSafeBox() {
 }
 
 
-void drawArm() {
-	glColor3f(0.5f, 0.5f, 0.5f); // metallic gray
-	glPushMatrix();
-	glScalef(0.1f, 2.0f, 0.1f); // thin vertical box
-	glutSolidCube(1.0f);
-	glPopMatrix();
-}
-
-void drawQuarterBlade(float direction) {
-	// direction = +1 for right blade, -1 for left blade
-	glBegin(GL_TRIANGLE_FAN);
-	glTexCoord2f(0.5f, 0.5f); // center of the texture
-	glVertex3f(0.0f, 0.0f, 0.0f);
-
-	for (int i = -45; i <= 45; i += 10) {
-		float angle = i * PI / 180.0f;
-		float x = direction * cos(angle) * 0.7f;
-		float y = sin(angle) * 0.7f;
-
-		// Map (x, y) to texture coordinates assuming unit circle
-		float u = 0.5f + (x / 1.4f); // Normalize between 0–1
-		float v = 0.5f + (y / 1.4f);
-
-		glTexCoord2f(u, v);
-		glVertex3f(x, y, 0.0f);
-	}
-	glEnd();
-}
-
-void drawBlades() {
-	glPushMatrix();
-	glTranslatef(0.0f, -1.0f, 0.0f); // bottom of arm
-	drawQuarterBlade(+1); // right quarter-circle
-	drawQuarterBlade(-1); // left quarter-circle
-	glPopMatrix();
-}
 
 
-void drawAxe(int x, int y, int z) {
-	glPushMatrix();
-	glScalef(4, 4, 4);
-	glEnable(GL_TEXTURE_2D);
-	glTranslatef(x, y, z);
-	use_texture(4);
-	drawArm();
-	use_texture(12);
-	drawBlades();
-	glPopMatrix();
-}
 
 bool isClickOnBox(int mouseX, int mouseY) {
 	GLdouble modelview[16], projection[16];
@@ -1629,6 +1588,17 @@ void finalCorridor_pt1() {
 		glVertex3f(-8, 20, 20);
 	glEnd();
 
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(8, 20, 40);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(-8, 20, 40);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(-8, 20, 20);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(8, 20, 20);
+	glEnd();
+
 	use_texture(1);
 	glBegin(GL_QUADS);
 		glTexCoord2d(0.0f, 0.0f);
@@ -1644,15 +1614,215 @@ void finalCorridor_pt1() {
 	glPopMatrix();
 }
 void finalCorridor_pt2() {
+	glPushMatrix();
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
+
+	use_texture(2); // Side walls
+
+	// Right Wall
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(20, -2, 40);
+	glTexCoord2d(1, 0); glVertex3f(20, -2, 100);
+	glTexCoord2d(1, 1); glVertex3f(20, 20, 100);
+	glTexCoord2d(0, 1); glVertex3f(20, 20, 40);
+	glEnd();
+
+	// Left Wall
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(-20, -2, 40);
+	glTexCoord2d(1, 0); glVertex3f(-20, -2, 100);
+	glTexCoord2d(1, 1); glVertex3f(-20, 20, 100);
+	glTexCoord2d(0, 1); glVertex3f(-20, 20, 40);
+	glEnd();
+
+	// Right wall connector at z = 40 (between pt1 and pt2)
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(8, -2, 40);
+	glTexCoord2d(1, 0); glVertex3f(20, -2, 40);
+	glTexCoord2d(1, 1); glVertex3f(20, 20, 40);
+	glTexCoord2d(0, 1); glVertex3f(8, 20, 40);
+	glEnd();
+
+	// Left wall connector at z = 40
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(-20, -2, 40);
+	glTexCoord2d(1, 0); glVertex3f(-8, -2, 40);
+	glTexCoord2d(1, 1); glVertex3f(-8, 20, 40);
+	glTexCoord2d(0, 1); glVertex3f(-20, 20, 40);
+	glEnd();
+
+	// Right wall connector at z = 100 (between pt2 and exit)
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(8, -2, 100);
+	glTexCoord2d(1, 0); glVertex3f(20, -2, 100);
+	glTexCoord2d(1, 1); glVertex3f(20, 20, 100);
+	glTexCoord2d(0, 1); glVertex3f(8, 20, 100);
+	glEnd();
+
+	// Left wall connector at z = 100
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(-20, -2, 100);
+	glTexCoord2d(1, 0); glVertex3f(-8, -2, 100);
+	glTexCoord2d(1, 1); glVertex3f(-8, 20, 100);
+	glTexCoord2d(0, 1); glVertex3f(-20, 20, 100);
+	glEnd();
+
+	// Ceiling
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(20, 20, 100);
+	glTexCoord2d(1, 0); glVertex3f(-20, 20, 100);
+	glTexCoord2d(1, 1); glVertex3f(-20, 20, 40);
+	glTexCoord2d(0, 1); glVertex3f(20, 20, 40);
+	glEnd();
+
+	use_texture(1); // Floor
+
+	// Floor
+	glBegin(GL_QUADS);
+	glTexCoord2d(0, 0); glVertex3f(20, -2, 100);
+	glTexCoord2d(1, 0); glVertex3f(-20, -2, 100);
+	glTexCoord2d(1, 1); glVertex3f(-20, -2, 40);
+	glTexCoord2d(0, 1); glVertex3f(20, -2, 40);
+	glEnd();
+
 	
+
+	drawAxe(0, 15, 50, 8, 8, 8, 0);
+	drawAxe(0, 15, 70, 8, 8, 8, 1);
+	drawAxe(0, 15, 90, 8, 8, 8, 2);
+
+
+	glPopMatrix();
 }
 
-void exit() {
+void exitCorridor() {
+	glPushMatrix();
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
+	use_texture(2);
 
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(8, -2, 100);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(8, -2, 120);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(8, 20, 120);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(8, 20, 100);
+	glEnd();
+
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(-8, -2, 100);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(-8, -2, 120);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(-8, 20, 120);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(-8, 20, 100);
+	glEnd();
+
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(8, 20, 120);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(-8, 20, 120);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(-8, 20, 100);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(8, 20, 100);
+	glEnd();
+
+	use_texture(1);
+	glBegin(GL_QUADS);
+		glTexCoord2d(0.0f, 0.0f);
+		glVertex3f(8, -2, 120);
+		glTexCoord2d(1.0f, 0.0f);
+		glVertex3f(-8, -2, 120);
+		glTexCoord2d(1.0f, 1.0f);
+		glVertex3f(-8, -2, 100);
+		glTexCoord2d(0.0f, 1.0f);
+		glVertex3f(8, -2, 100);
+	glEnd();
+
+	glPopMatrix();
 }
+
 
 void finalCorridor() {
 	finalCorridor_pt1();
 	finalCorridor_pt2();
-	exit();
+	exitCorridor();
+}
+
+void drawArm() {
+	glPushMatrix();
+	glColor3f(0.5f, 0.5f, 0.5f); // metallic gray
+	glScalef(0.1f, 2.0f, 0.1f); // thin vertical box
+	glutSolidCube(1.0f);
+	glPopMatrix();
+}
+
+
+void drawQuarterBlade(float direction) {
+	// direction = +1 for right blade, -1 for left blade
+	glBegin(GL_TRIANGLE_FAN);
+	glTexCoord2f(0.5f, 0.5f); // center of the texture
+	glVertex3f(0.0f, 0.0f, 0.0f);
+
+	for (int i = -45; i <= 45; i += 10) {
+		float angle = i * PI / 180.0f;
+		float x = direction * cos(angle) * 0.7f;
+		float y = sin(angle) * 0.7f;
+
+		// Map (x, y) to texture coordinates assuming unit circle
+		float u = 0.5f + (x / 1.4f); // Normalize between 0–1
+		float v = 0.5f + (y / 1.4f);
+
+		glTexCoord2f(u, v);
+		glVertex3f(x, y, 0.0f);
+	}
+	glEnd();
+}
+
+void drawBlades() {
+	glPushMatrix();
+	glTranslatef(0.0f, -1.0f, 0.0f); // bottom of arm
+	drawQuarterBlade(+1); // right quarter-circle
+	drawQuarterBlade(-1); // left quarter-circle
+	glPopMatrix();
+}
+
+
+void drawAxe(float trans_x, float trans_y, float trans_z, float scale_x, float scale_y, float scale_z, int axe_number) {
+	glPushMatrix();
+	glTranslatef(trans_x, trans_y, trans_z);
+
+	glTranslatef(0.0f, scale_y, 0.0f);
+	glRotatef(axe_angle[axe_number], 0.0f, 0.0f, 1.0f);
+	glTranslatef(0.0f, -scale_y, 0.0f);
+
+	glScalef(scale_x, scale_y, scale_z);
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_LIGHTING);
+	use_texture(4);
+	drawArm();
+	use_texture(12);
+	drawBlades();
+	
+	glPopMatrix();
+}
+
+
+void axeTimer(int v) {
+	for (int i = 0; i < 3; i++) {
+		axe_angle[i] += 5 * axe_side[i];
+		if (axe_angle[i] > 60 || axe_angle[i] < -60)
+			axe_side[i] *= -1;
+	}
+
+	glutPostRedisplay();
+	glutTimerFunc(30, axeTimer, 0);
 }
